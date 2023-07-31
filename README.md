@@ -2,13 +2,13 @@
 
 Toolkit to build Git push workflows with Go
 
-[![Build](https://github.com/sosedoff/gitkit/actions/workflows/build.yml/badge.svg)](https://github.com/sosedoff/gitkit/actions/workflows/build.yml)
-[![GoDoc](https://godoc.org/github.com/sosedoff/gitkit?status.svg)](https://godoc.org/github.com/sosedoff/gitkit)
+[![Build](https://github.com/actor168/gitkit/actions/workflows/build.yml/badge.svg)](https://github.com/actor168/gitkit/actions/workflows/build.yml)
+[![GoDoc](https://godoc.org/github.com/actor168/gitkit?status.svg)](https://godoc.org/github.com/actor168/gitkit)
 
 ## Install
 
 ```bash
-go get github.com/sosedoff/gitkit
+go get github.com/actor168/gitkit
 ```
 
 ## Smart HTTP Server
@@ -19,7 +19,7 @@ package main
 import (
   "log"
   "net/http"
-  "github.com/sosedoff/gitkit"
+  "github.com/actor168/gitkit"
 )
 
 func main() {
@@ -101,7 +101,7 @@ import (
   "log"
   "net/http"
 
-  "github.com/sosedoff/gitkit"
+  "github.com/actor168/gitkit"
 )
 
 func main() {
@@ -164,7 +164,7 @@ package main
 
 import (
   "log"
-  "github.com/sosedoff/gitkit"
+  "github.com/actor168/gitkit"
 )
 
 // User-defined key lookup function. You can make a call to a database or
@@ -259,7 +259,7 @@ import (
   "os"
   "fmt"
 
-  "github.com/sosedoff/gitkit"
+  "github.com/actor168/gitkit"
 )
 
 // HookInfo contains information about branch, before and after revisions.
