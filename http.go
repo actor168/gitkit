@@ -20,9 +20,10 @@ type service struct {
 }
 
 type Server struct {
-	config   Config
-	services []service
-	AuthFunc func(Credential, *Request) (bool, error)
+	config         Config
+	services       []service
+	AuthFunc       func(Credential, *Request) (bool, error)
+	FilterRepoFunc func(repos []string) []string
 }
 
 type Request struct {
@@ -50,7 +51,7 @@ func New(cfg Config) *Server {
 		{"GET", "/info/refs", s.getInfoRefs, ""},
 		{"POST", "/git-upload-pack", s.postRPC, "git-upload-pack"},
 		{"POST", "/git-receive-pack", s.postRPC, "git-receive-pack"},
-		{"GET", "/repo", s.listRepo, ""},
+		{"GET", "/repos", s.listRepo, ""},
 		{"POST", "/repo", s.createRepo, ""},
 		{"DELETE", "/repo", s.deleteRepo, ""},
 	}
@@ -131,6 +132,13 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if (req.Method == http.MethodPost && strings.HasSuffix(req.RequestURI, "/repo")) ||
+		(req.Method == http.MethodGet && strings.HasSuffix(req.RequestURI, "/repos")) {
+		// skip create repo and list repos
+		svc.handler(svc.rpc, w, req)
+		return
+	}
+
 	if !repoExists(req.RepoPath) && s.config.AutoCreate {
 		err := initRepo(req.RepoName, &s.config)
 		if err != nil {
@@ -138,9 +146,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if req.Method == http.MethodPost && strings.HasSuffix(req.RequestURI, "/repo") {
-		// skip create repo
-	} else if !repoExists(req.RepoPath) {
+	if !repoExists(req.RepoPath) {
 		logError("repo-init", fmt.Errorf("%s does not exist", req.RepoPath))
 		http.NotFound(w, r)
 		return
@@ -287,6 +293,7 @@ func (s *Server) listRepo(_ string, w http.ResponseWriter, r *Request) {
 		}
 	}
 
+	repos = s.FilterRepoFunc(repos)
 	body := &KitResponse{
 		Code: 200,
 		Data: KitListRepoResponse{
