@@ -87,7 +87,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Determine namespace and repo name from request path
 	repoNamespace, repoName := getNamespaceAndRepo(repoUrlPath)
-	if repoName == "" {
+	if r.Method == http.MethodGet && strings.HasSuffix(r.RequestURI, "/repos") {
+		// skip list repos
+	} else if repoName == "" {
 		logError("auth", fmt.Errorf("no repo name provided"))
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -132,9 +134,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if (req.Method == http.MethodPost && strings.HasSuffix(req.RequestURI, "/repo")) ||
-		(req.Method == http.MethodGet && strings.HasSuffix(req.RequestURI, "/repos")) {
-		// skip create repo and list repos
+	if req.Method == http.MethodPost && strings.HasSuffix(req.RequestURI, "/repo") {
+		// skip create repo
 		svc.handler(svc.rpc, w, req)
 		return
 	}
