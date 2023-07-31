@@ -31,12 +31,28 @@ type Request struct {
 	RepoPath string
 }
 
+type KitResponse struct {
+	Code int         `json:"code"`
+	Data interface{} `json:"data"`
+}
+
+type KitRepoResponse struct {
+	RepoPath string `json:"repoPath"`
+}
+
+type KitListRepoResponse struct {
+	RepoPath []string `json:"repoPath"`
+}
+
 func New(cfg Config) *Server {
 	s := Server{config: cfg}
 	s.services = []service{
-		service{"GET", "/info/refs", s.getInfoRefs, ""},
-		service{"POST", "/git-upload-pack", s.postRPC, "git-upload-pack"},
-		service{"POST", "/git-receive-pack", s.postRPC, "git-receive-pack"},
+		{"GET", "/info/refs", s.getInfoRefs, ""},
+		{"POST", "/git-upload-pack", s.postRPC, "git-upload-pack"},
+		{"POST", "/git-receive-pack", s.postRPC, "git-receive-pack"},
+		{"GET", "/repo", s.listRepo, ""},
+		{"POST", "/repo", s.createRepo, ""},
+		{"DELETE", "/repo", s.deleteRepo, ""},
 	}
 
 	// Use PATH if full path is not specified
@@ -115,7 +131,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if !repoExists(req.RepoPath) && s.config.AutoCreate == true {
+	if !repoExists(req.RepoPath) && s.config.AutoCreate {
 		err := initRepo(req.RepoName, &s.config)
 		if err != nil {
 			logError("repo-init", err)
@@ -218,6 +234,97 @@ func (s *Server) postRPC(rpc string, w http.ResponseWriter, r *Request) {
 		logError(context, err)
 		return
 	}
+}
+
+func (s *Server) createRepo(_ string, w http.ResponseWriter, req *Request) {
+	if !repoExists(req.RepoPath) {
+		err := initRepo(req.RepoName, &s.config)
+		if err != nil {
+			fail500(w, "repo-init", err)
+			return
+		}
+
+		body := &KitResponse{
+			Code: 201,
+			Data: KitRepoResponse{
+				RepoPath: req.RepoName,
+			},
+		}
+		formatResponse(w, body, http.StatusCreated)
+		return
+	}
+	body := &KitResponse{
+		Code: 409,
+		Data: KitRepoResponse{
+			RepoPath: req.RepoName,
+		},
+	}
+	formatResponse(w, body, http.StatusConflict)
+}
+
+func (s *Server) listRepo(_ string, w http.ResponseWriter, r *Request) {
+	fullPath := s.config.Dir
+	dirs, err := os.ReadDir(fullPath)
+	if err != nil {
+		fail500(w, "list repo", err)
+		return
+	}
+	repos := make([]string, 0)
+	for _, repoDir := range dirs {
+		if repoDir.IsDir() {
+			subDirs, err := os.ReadDir(repoDir.Name())
+			if err != nil {
+				fail500(w, "list repo", err)
+				return
+			}
+			for _, d := range subDirs {
+				if d.IsDir() && strings.HasSuffix(d.Name(), ".git") {
+					repos = append(repos, path.Join(repoDir.Name(), d.Name()))
+				}
+			}
+		}
+	}
+
+	body := &KitResponse{
+		Code: 200,
+		Data: KitListRepoResponse{
+			repos,
+		},
+	}
+	formatResponse(w, body, http.StatusOK)
+}
+
+func (s *Server) deleteRepo(_ string, w http.ResponseWriter, r *Request) {
+	if r.RepoName == "" {
+		body := &KitResponse{
+			Code: 400,
+			Data: KitRepoResponse{
+				r.RepoName,
+			},
+		}
+		formatResponse(w, body, http.StatusBadRequest)
+		return
+	}
+	fullPath := path.Join(s.config.Dir, r.RepoName)
+	f, err := os.Lstat(fullPath)
+	if err != nil || f == nil {
+		fail500(w, "find repo", err)
+		return
+	}
+
+	err = os.RemoveAll(fullPath)
+	if err != nil || f == nil {
+		fail500(w, "find repo", err)
+		return
+	}
+
+	body := &KitResponse{
+		Code: 202,
+		Data: KitRepoResponse{
+			r.RepoName,
+		},
+	}
+	formatResponse(w, body, http.StatusAccepted)
 }
 
 func (s *Server) Setup() error {

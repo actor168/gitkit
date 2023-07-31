@@ -1,6 +1,7 @@
 package gitkit
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -16,6 +17,18 @@ var reSlashDedup = regexp.MustCompile(`\/{2,}`)
 func fail500(w http.ResponseWriter, context string, err error) {
 	http.Error(w, "Internal server error", 500)
 	logError(context, err)
+}
+
+func formatResponse(w http.ResponseWriter, body interface{}, code int) {
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Cache-Control", "no-cache")
+	w.WriteHeader(code)
+	data, err := json.Marshal(body)
+	if err != nil {
+		fail500(w, "marshal response", err)
+		return
+	}
+	w.Write(data)
 }
 
 func logError(context string, err error) {
