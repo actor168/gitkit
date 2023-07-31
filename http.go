@@ -23,7 +23,7 @@ type Server struct {
 	config         Config
 	services       []service
 	AuthFunc       func(Credential, *Request) (bool, error)
-	FilterRepoFunc func(repos []string) []string
+	FilterRepoFunc func([]string, *Request) []string
 }
 
 type Request struct {
@@ -293,7 +293,7 @@ func (s *Server) listRepo(_ string, w http.ResponseWriter, r *Request) {
 		}
 	}
 
-	repos = s.FilterRepoFunc(repos)
+	repos = s.FilterRepoFunc(repos, r)
 	body := &KitResponse{
 		Code: 200,
 		Data: KitListRepoResponse{
