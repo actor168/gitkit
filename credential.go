@@ -8,6 +8,7 @@ import (
 type Credential struct {
 	Username string
 	Password string
+	Token    string
 }
 
 func getCredential(req *http.Request) (Credential, error) {
@@ -15,6 +16,11 @@ func getCredential(req *http.Request) (Credential, error) {
 
 	user, pass, ok := req.BasicAuth()
 	if !ok {
+		// return auth
+		if token, ok := tokenAuth(req); ok {
+			cred.Token = token
+			return cred, nil
+		}
 		return cred, fmt.Errorf("authentication failed")
 	}
 
@@ -22,4 +28,11 @@ func getCredential(req *http.Request) (Credential, error) {
 	cred.Password = pass
 
 	return cred, nil
+}
+
+func tokenAuth(req *http.Request) (string, bool) {
+	if token := req.Header.Get("Authorization"); token != "" {
+		return token, true
+	}
+	return "", false
 }
