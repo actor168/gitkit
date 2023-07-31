@@ -138,7 +138,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if !repoExists(req.RepoPath) {
+	if req.Method == http.MethodPost && strings.HasSuffix(req.RequestURI, "/repo") {
+		// skip create repo
+	} else if !repoExists(req.RepoPath) {
 		logError("repo-init", fmt.Errorf("%s does not exist", req.RepoPath))
 		http.NotFound(w, r)
 		return
