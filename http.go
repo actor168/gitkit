@@ -134,7 +134,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if req.Method == http.MethodPost && strings.HasSuffix(req.RequestURI, "/repo") {
+	if req.Method == http.MethodPost && strings.HasSuffix(req.RequestURI, "/repo") ||
+		req.Method == http.MethodGet && strings.HasSuffix(req.RequestURI, "/repos") {
 		// skip create repo
 		svc.handler(svc.rpc, w, req)
 		return
