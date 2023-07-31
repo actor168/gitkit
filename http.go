@@ -282,7 +282,7 @@ func (s *Server) listRepo(_ string, w http.ResponseWriter, r *Request) {
 	repos := make([]string, 0)
 	for _, repoDir := range dirs {
 		if repoDir.IsDir() {
-			subDirs, err := os.ReadDir(repoDir.Name())
+			subDirs, err := os.ReadDir(path.Join(fullPath, repoDir.Name()))
 			if err != nil {
 				fail500(w, "list repo", err)
 				return
